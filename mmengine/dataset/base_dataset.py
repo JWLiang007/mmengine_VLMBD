@@ -224,7 +224,8 @@ class BaseDataset(Dataset):
                  pipeline: List[Union[dict, Callable]] = [],
                  test_mode: bool = False,
                  lazy_init: bool = False,
-                 max_refetch: int = 1000):
+                 max_refetch: int = 1000,
+                 bd_args = None):
         self.ann_file = ann_file
         self._metainfo = self._load_metainfo(copy.deepcopy(metainfo))
         self.data_root = data_root
@@ -236,6 +237,7 @@ class BaseDataset(Dataset):
         self.max_refetch = max_refetch
         self.data_list: List[dict] = []
         self.data_bytes: np.ndarray
+        self.bd_args = bd_args 
 
         # Join paths.
         self._join_prefix()
@@ -790,6 +792,8 @@ class BaseDataset(Dataset):
             Any: Depends on ``self.pipeline``.
         """
         data_info = self.get_data_info(idx)
+        if self.bd_args is not None:
+            data_info['eval_bd_image_transform'] = self.bd_args['eval_bd_image_transform']
         return self.pipeline(data_info)
 
     @force_full_init

@@ -305,7 +305,8 @@ class DefaultOptimWrapperConstructor:
             iter(inspect.signature(optimizer_cls).parameters))
         # if no paramwise option is specified, just use the global setting
         if not self.paramwise_cfg:
-            optimizer_cfg[fisrt_arg_name] = model.parameters()
+            # optimizer_cfg[fisrt_arg_name] = model.parameters()
+            optimizer_cfg[fisrt_arg_name] = (i for i in model.parameters() if i.requires_grad==True)
             optimizer = OPTIMIZERS.build(optimizer_cfg)
         else:
             # set param-wise lr and weight decay recursively

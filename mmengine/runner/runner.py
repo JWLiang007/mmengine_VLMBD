@@ -1696,6 +1696,8 @@ class Runner:
             self.resume(resume_from)
             self._has_loaded = True
         elif self._load_from is not None:
+            if self.cfg.get('pre_resume',None):
+                self.load_checkpoint(self.cfg.pre_resume)
             self.load_checkpoint(self._load_from)
             self._has_loaded = True
 
@@ -1774,6 +1776,10 @@ class Runner:
         # This must be called **AFTER** model has been wrapped.
         self._maybe_compile('train_step')
 
+        if hasattr(self,"accelerator"):
+            if self.accelerator.state.deepspeed_plugin is not None:
+                self.accelerator.state.deepspeed_plugin.deepspeed_config["train_micro_batch_size_per_gpu"] = self.train_dataloader.batch_size
+            self.model, self.optim_wrapper.optimizer = self.accelerator.prepare(self.model, self.optim_wrapper.optimizer)
         model = self.train_loop.run()  # type: ignore
         self.call_hook('after_run')
         return model
@@ -2226,11 +2232,24 @@ class Runner:
         else:
             model = self.model
 
+        new_dict = model.state_dict()
+        if hasattr(model, 'module') and hasattr(self,"accelerator"):
+            unwrapped_model = self.accelerator.unwrap_model(model)
+            new_dict = OrderedDict()
+            for k,v in unwrapped_model.named_parameters():
+                if v.requires_grad == True:
+                    new_dict[k] = unwrapped_model.state_dict()[k]
+                if 'Blip2' in unwrapped_model.__class__.__name__ and 'vision_backbone' in k :
+                    new_dict[k] = unwrapped_model.state_dict()[k]
+            if 'Flamingo' in unwrapped_model.__class__.__name__:
+                for name, p in unwrapped_model.lang_encoder.gated_cross_attn_layers.state_dict().items():
+                    new_dict['lang_encoder.gated_cross_attn_layers.'+name] = p
+
         checkpoint = {
             'meta':
             meta,
             'state_dict':
-            weights_to_cpu(model.state_dict()),
+            weights_to_cpu(new_dict),
             'message_hub':
             apply_to(self.message_hub.state_dict(),
                      lambda x: hasattr(x, 'cpu'), lambda x: x.cpu()),

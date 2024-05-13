@@ -82,7 +82,8 @@ class BaseModel(BaseModule):
                             f'{type(data_preprocessor)}')
 
     def train_step(self, data: Union[dict, tuple, list],
-                   optim_wrapper: OptimWrapper) -> Dict[str, torch.Tensor]:
+                   optim_wrapper: OptimWrapper,
+                   accelerator = None) -> Dict[str, torch.Tensor]:
         """Implements the default model training process including
         preprocessing, model forward propagation, loss calculation,
         optimization, and back-propagation.
@@ -108,12 +109,23 @@ class BaseModel(BaseModule):
         Returns:
             Dict[str, torch.Tensor]: A ``dict`` of tensor for logging.
         """
+        # if accelerator is not None :
+        #     assert optimizer is not None
+        #     data = self.data_preprocessor(data, True)
+        #     losses = self._run_forward(data, mode='loss')  # type: ignore
+        #     parsed_losses, log_vars = self.parse_losses(losses)
+        #     accelerator.backward(parsed_losses)
+        #     accelerator.clip_grad_norm_(self.parameters(), 1.0)
+        #     optimizer.step()
+        #     # lr_scheduler.step()
+        #     optimizer.zero_grad()
+        #     return log_vars
         # Enable automatic mixed precision training context.
         with optim_wrapper.optim_context(self):
             data = self.data_preprocessor(data, True)
             losses = self._run_forward(data, mode='loss')  # type: ignore
         parsed_losses, log_vars = self.parse_losses(losses)  # type: ignore
-        optim_wrapper.update_params(parsed_losses)
+        optim_wrapper.update_params(parsed_losses, accelerator=accelerator)
         return log_vars
 
     def val_step(self, data: Union[tuple, dict, list]) -> list:

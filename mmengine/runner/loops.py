@@ -13,7 +13,7 @@ from mmengine.registry import LOOPS
 from .amp import autocast
 from .base_loop import BaseLoop
 from .utils import calc_dynamic_intervals
-
+from tqdm import tqdm 
 
 @LOOPS.register_module()
 class EpochBasedTrainLoop(BaseLoop):
@@ -126,7 +126,7 @@ class EpochBasedTrainLoop(BaseLoop):
         # synchronization during gradient accumulation process.
         # outputs should be a dict of loss.
         outputs = self.runner.model.train_step(
-            data_batch, optim_wrapper=self.runner.optim_wrapper)
+            data_batch, optim_wrapper=self.runner.optim_wrapper, accelerator=self.runner.accelerator)
 
         self.runner.call_hook(
             'after_train_iter',
@@ -439,7 +439,7 @@ class TestLoop(BaseLoop):
         self.runner.call_hook('before_test')
         self.runner.call_hook('before_test_epoch')
         self.runner.model.eval()
-        for idx, data_batch in enumerate(self.dataloader):
+        for idx, data_batch in tqdm(enumerate(self.dataloader), total=len(self.dataloader)):
             self.run_iter(idx, data_batch)
 
         # compute metrics

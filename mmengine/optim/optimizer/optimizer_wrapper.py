@@ -176,7 +176,8 @@ class OptimWrapper(BaseOptimWrapper):
             self,
             loss: torch.Tensor,
             step_kwargs: Optional[Dict] = None,
-            zero_kwargs: Optional[Dict] = None) -> None:
+            zero_kwargs: Optional[Dict] = None,
+            accelerator = None ) -> None:
         """Update parameters in :attr:`optimizer`.
 
         Args:
@@ -193,7 +194,7 @@ class OptimWrapper(BaseOptimWrapper):
         if zero_kwargs is None:
             zero_kwargs = {}
         loss = self.scale_loss(loss)
-        self.backward(loss)
+        self.backward(loss, accelerator=accelerator)
         # Update parameters only if `self._inner_count` is divisible by
         # `self._accumulative_counts` or `self._inner_count` equals to
         # `self._max_counts`
@@ -217,7 +218,10 @@ class OptimWrapper(BaseOptimWrapper):
             loss (torch.Tensor): The loss of current iteration.
             kwargs: Keyword arguments passed to :meth:`torch.Tensor.backward`.
         """
-        loss.backward(**kwargs)
+        if 'accelerator' in kwargs:
+            kwargs['accelerator'].backward(loss)
+        else:
+            loss.backward(**kwargs)
         self._inner_count += 1
 
     def zero_grad(self, **kwargs) -> None:
