@@ -1779,7 +1779,7 @@ class Runner:
         if hasattr(self,"accelerator"):
             if self.accelerator.state.deepspeed_plugin is not None:
                 self.accelerator.state.deepspeed_plugin.deepspeed_config["train_micro_batch_size_per_gpu"] = max(self.train_dataloader.batch_size // self.accelerator.num_processes, 1)
-            self.model, self.optim_wrapper.optimizer,self.train_dataloader = self.accelerator.prepare(self.model, self.optim_wrapper.optimizer, self.train_dataloader)
+            self.model, self.optim_wrapper.optimizer,self.train_loop.train_dataloader = self.accelerator.prepare(self.model, self.optim_wrapper.optimizer, self.train_dataloader)
         model = self.train_loop.run()  # type: ignore
         self.call_hook('after_run')
         return model
