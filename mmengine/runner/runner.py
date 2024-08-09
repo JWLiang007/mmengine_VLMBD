@@ -1954,7 +1954,7 @@ class Runner:
         default_hooks: dict = dict(
             runtime_info=dict(type='RuntimeInfoHook'),
             timer=dict(type='IterTimerHook'),
-            sampler_seed=dict(type='DistSamplerSeedHook'),
+            # sampler_seed=dict(type='DistSamplerSeedHook'),
             logger=dict(type='LoggerHook'),
             param_scheduler=dict(type='ParamSchedulerHook'),
             checkpoint=dict(type='CheckpointHook', interval=1),
